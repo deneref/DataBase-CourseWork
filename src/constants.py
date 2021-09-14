@@ -1,7 +1,18 @@
-token = "1913472001:AAG5yobkpctS-eBGVqIKjs6MhHpVtUwnwBA"
-magicWord = "кринж"
+with open('secrets/API-token.txt') as f:
+    token = f.read()
+
+with open('secrets/magicWord.txt') as f:
+    magicWord = f.read()
+    
 dateFormat = "%d-%m-%Y"
 timeFormat = "%H:%m"
+
+weekDays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+# months = ["январь", "февраль", "март", "апрель", "май", "июнь",
+#          "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"]
+months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+MAXEVENTSONREG = 10
+
 
 class UserStatus:
     UNKNOWN = -1  # default
@@ -39,8 +50,9 @@ class GuestChoiceButton:
         UPTOREGISTRATION = "Я хочу записаться на ивент"
         CANCELREGISTRATION = "Хочу отменить запись"
 
-    class Options:
+    class Settings:
         CHANGENAME = "Хочу поменять имя"
+
 
 class AdminChoiceButton:
     class PrimalChoice:
@@ -51,3 +63,6 @@ class AdminChoiceButton:
     class ShowStats:
         REGAMOUNT = "Сколько куда записаны"
         SMTHELSE = "Smth else..."
+
+    class Settings:
+        CHANGENAME = "Хочу поменять имя"

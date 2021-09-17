@@ -3,13 +3,11 @@ with open('secrets/API-token.txt') as f:
 
 with open('secrets/magicWord.txt') as f:
     magicWord = f.read()
-    
+
 dateFormat = "%d-%m-%Y"
 timeFormat = "%H:%m"
 
 weekDays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
-# months = ["январь", "февраль", "март", "апрель", "май", "июнь",
-#          "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"]
 months = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
 MAXEVENTSONREG = 10
 
@@ -57,12 +55,20 @@ class GuestChoiceButton:
 class AdminChoiceButton:
     class PrimalChoice:
         SHOWSTATS = "Смотреть статистику"
+        ADDEVENT = "Добавить ивент"
         EDITEVENTS = "Редактировать ивенты"
         SETTINGS = "Настройки"
 
+    class EditEvent:
+        EDITNAME = "✏ название"
+        EDITDATE = "✏ дата"
+        EDITTIME = "✏ время"
+        EDITOWNER = "✏ овнер"
+        EDITDESCRIPTION = "✏ описание"
+
     class ShowStats:
         REGAMOUNT = "Сколько куда записаны"
-        SMTHELSE = "Smth else..."
+        SMTHELSE = "Что-то еще"
 
     class Settings:
         CHANGENAME = "Хочу поменять имя"

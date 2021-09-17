@@ -37,12 +37,14 @@ def guestWeekEvents():
     return markup
 
 
-def guestRegEvents(eventNames):
+# возвращает кнопки с ивентами
+# по ролям меняется callback_data чтобы отлавливать колбек собсна
+def chooseUpcomingWeekEvents(eventNames, reply_part):
     markup = InlineKeyboardMarkup()
     markup.row_width = 2
     for event in eventNames:
         markup.add(InlineKeyboardButton(inline_reg_button_text.format(event["name"], event["start_dt"]),
-                                        callback_data=reply_event_choosing_part + event["name"]))
+                                        callback_data=reply_part + event["name"]))
     return markup
 
 
@@ -63,6 +65,7 @@ def guestSettingMenu():
 def adminMainOptionsKeyboard():
     keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
     keyboard.row(AdminChoiceButton.PrimalChoice.SHOWSTATS)
+    keyboard.row(AdminChoiceButton.PrimalChoice.ADDEVENT)
     keyboard.row(AdminChoiceButton.PrimalChoice.EDITEVENTS)
     keyboard.row(AdminChoiceButton.PrimalChoice.SETTINGS)
 
@@ -94,3 +97,23 @@ def adminShowRegedStat():
                InlineKeyboardButton("Декабрь", callback_data=months[11]),
                )
     return markup
+
+
+def adminPrimalChoiceKeyboard():
+    keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
+    keyboard.row(AdminChoiceButton.PrimalChoice.SHOWSTATS)
+    keyboard.row(AdminChoiceButton.PrimalChoice.EDITEVENTS)
+    keyboard.row(AdminChoiceButton.PrimalChoice.SETTINGS)
+
+    return keyboard
+
+
+def adminEditEventsOptionsKeyboard():
+    keyboard = telebot.types.ReplyKeyboardMarkup(True, True)
+    keyboard.row(AdminChoiceButton.EditEvent.EDITNAME)
+    keyboard.row(AdminChoiceButton.EditEvent.EDITDATE)
+    keyboard.row(AdminChoiceButton.EditEvent.EDITTIME)
+    keyboard.row(AdminChoiceButton.EditEvent.EDITOWNER)
+    keyboard.row(AdminChoiceButton.EditEvent.EDITDESCRIPTION)
+
+    return keyboard

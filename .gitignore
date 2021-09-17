@@ -7,10 +7,11 @@
 *.db
 *.db-shm
 *.db-wal
-/.__pychache__/*
-/.idea/*
-/secrets/*
-/.handler-saves/*
+*/__pycache__/*
+*/.idea/*
+.idea/*
+*/secrets/*
+*/.handler-saves/*
 
 # Test binary, built with `go test -c`
 *.test

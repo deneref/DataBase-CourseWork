@@ -24,9 +24,11 @@ def handle_start(message):
 
 @bot.message_handler(commands=["admin"])
 def handle_admin(message):
-    if registered(message.from_user.id):
+    if not (checkAdminStatus(message.from_user.id)):
         bot.register_next_step_handler(bot.send_message(message.chat.id, reply_admin_password),
                                        fill_admin_password_step)
+    else:
+        bot.send_message(message.from_user.id, reply_already_admin)
 
 
 @bot.message_handler(commands=["menu"])
@@ -41,6 +43,11 @@ def handle_admin(message):
     regs = selectAllFromRegs()
     [print(u) for u in users]
     [print(r) for r in regs]
+
+
+@bot.message_handler(commands=["help"])
+def handle_admin(message):
+    bot.send_message(message.from_user.id, help_note)
 
 
 def sendMainOptionsKeyboard(id):
@@ -68,7 +75,10 @@ def fill_name_step(message):
 
 def fill_admin_password_step(message):
     userId = message.chat.id
-    print(message.chat.id, message.from_user.id)
+    if not registered(userId):
+        bot.reply_to(message, 'Нажми /start, друг')
+        return
+
     succ = giveAdminStatus(userId, message.text)
     if succ:
         bot.send_message(message.from_user.id, reply_admin_change_succ)
@@ -141,6 +151,7 @@ def callback_query(call):
 def choiceGuestShowTodayEvents(message):
     try:
         bot.send_message(message.chat.id, getTodayEvents())
+        sendMainOptionsKeyboard(message.chat.id)
     except Exception as e:
         print(str(e))
         bot.send_message(message.chat.id, reply_nothing_found)
@@ -170,9 +181,10 @@ def choiceGuestOptionsChangeName(message):
                      content_types=['text'])
 def choiceGuestUpToRegistration(message):
     try:
-        upfrontWeekEvents = getWeekUpfrontEvents(MAXEVENTSONREG)
+        upfrontWeekEvents = getActiveWeekUpfrontEvents(MAXEVENTSONREG)
         if len(upfrontWeekEvents) > 0:
-            bot.send_message(message.chat.id, reply_choose_event, reply_markup=guestRegEvents(upfrontWeekEvents))
+            bot.send_message(message.chat.id, reply_choose_event,
+                             reply_markup=chooseUpcomingWeekEvents(upfrontWeekEvents, reply_event_choosing_part))
         else:
             bot.send_message(message.chat.id, reply_empty_week)
             sendMainOptionsKeyboard(message.chat.id)
@@ -183,7 +195,7 @@ def choiceGuestUpToRegistration(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.find(reply_event_choosing_part) != -1)
 def callback_query(call):
-    upfrontWeekEvents = getWeekUpfrontEvents(MAXEVENTSONREG)
+    upfrontWeekEvents = getActiveWeekUpfrontEvents(MAXEVENTSONREG)
     for event in upfrontWeekEvents:
         try:
             if call.data == reply_event_choosing_part + event["name"]:
@@ -241,12 +253,13 @@ def callback_query(call):
             sendMainOptionsKeyboard(call.from_user.id)
 
 
-'''ADMIN HADLERS'''
+'''ADMIN HANDLERS'''
 
 
 @bot.message_handler(func=lambda message: message.text == AdminChoiceButton.PrimalChoice.SHOWSTATS,
                      content_types=['text'])
 def choiceAdminShowRegedStat(message):
+    if not checkAdminStatus(message.from_user.id): return
     try:
         bot.send_message(message.chat.id, reply_choose_stat_to_show,
                          reply_markup=adminEventStatChoice())
@@ -258,6 +271,7 @@ def choiceAdminShowRegedStat(message):
 @bot.message_handler(func=lambda message: message.text == AdminChoiceButton.ShowStats.REGAMOUNT,
                      content_types=['text'])
 def choiceAdminShowRegedStat(message):
+    if not checkAdminStatus(message.from_user.id): return
     try:
         bot.send_message(message.chat.id, reply_choose_months_to_show_stats,
                          reply_markup=adminShowRegedStat())
@@ -268,15 +282,20 @@ def choiceAdminShowRegedStat(message):
 
 @bot.callback_query_handler(func=lambda call: call.data in months)
 def callback_query(call):
+    if not checkAdminStatus(call.from_user.id): return
     try:
         stats = getRegistratedStatsForGivenMonth(call.data)
         msg = reply_stats
         [print(e) for e in stats]
-        msg = [msg + reply_del + reply_stats_row.format(e["name"],
-                                                        e["count_active"], e["count_inactive"]) for e in stats]
+        for r in stats:
+            msg = msg + reply_stats_row.format(r["name"], r["count_active"], r["count_inactive"])
+
+        print(msg)
         if len(msg) > 4096:
             for x in range(0, len(msg), 4096):
                 bot.send_message(call.from_user.id, msg[x:x + 4096])
+        elif len(stats) == 0:
+            bot.send_message(call.from_user.id, reply_nothing_found)
         else:
             bot.send_message(call.from_user.id, msg)
     except Exception as e:
@@ -284,6 +303,113 @@ def callback_query(call):
         bot.edit_message_text(message_id=call.message.message_id,
                               chat_id=call.from_user.id,
                               text=reply_no_stat_for_month)
+
+
+'''ADMIN EDIT EVENT'''
+
+
+@bot.message_handler(func=lambda message: message.text == AdminChoiceButton.PrimalChoice.EDITEVENTS,
+                     content_types=['text'])
+def choiceAdminEditEvents(message):
+    if not checkAdminStatus(message.from_user.id): return
+    upfrontWeekEvents = getAllWeekUpfrontEvents(MAXEVENTSONREG)
+    try:
+        bot.send_message(message.chat.id, text=reply_event_edit,
+                         reply_markup=chooseUpcomingWeekEvents(upfrontWeekEvents, reply_event_edit_part))
+    except Exception as e:
+        print(str(e))
+        bot.send_message(message.chat.id, error_msg)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.find(reply_event_edit_part) != -1)
+def callback_query(call):
+    upfrontWeekEvents = getAllWeekUpfrontEvents(MAXEVENTSONREG)
+    for event in upfrontWeekEvents:
+        try:
+            if call.data == reply_event_edit_part + event["name"]:
+                bot.answer_callback_query(call.id, event["name"])
+
+                bot.send_message(chat_id=call.from_user.id,
+                                 text=reply_event_markup_advanced
+                                 .format(event["id"], event["name"], event["start_dt"], event["start_time"],
+                                         event["owner"], event["status"], event["description"]))
+
+                bot.register_next_step_handler(bot.send_message(call.from_user.id, reply_event_edit1), edit_event_step)
+        except Exception as e:
+            print(str(e))
+            bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id, text=error_msg)
+
+
+def edit_event_step(message):
+    try:
+        event = {}
+        for line in message.text.split("\n"):
+            part1, part2 = line.split(": ")[0], line.split(": ")[1]
+            if part1 == "№":
+                event["id"] = part2
+            elif part1 == "Название":
+                event["name"] = part2
+            elif part1 == "Дата":
+                event["start_dt"] = part2
+            elif part1 == "Время":
+                event["start_time"] = part2
+            elif part1 == "Проводит":
+                event["owner"] = part2
+            elif part1 == "Статус":
+                event["status"] = part2
+            elif part1 == "Описание":
+                event["description"] = part2
+        print(event)
+        if updateEvent(event):
+            bot.send_message(chat_id=message.from_user.id, text=reply_event_succ_upd)
+        else:
+            bot.send_message(chat_id=message.from_user.id, text=reply_event_unsucc_upd)
+
+    except Exception as e:
+        bot.reply_to(message, 'чушь-пурга')
+        print(str(e))
+
+
+'''ADMIN ADD EVENT'''
+
+
+@bot.message_handler(func=lambda message: message.text == AdminChoiceButton.PrimalChoice.ADDEVENT,
+                     content_types=['text'])
+def choiceAdminAddEvents(message):
+    if not checkAdminStatus(message.from_user.id): return
+    try:
+        bot.send_message(message.from_user.id, reply_event_add_remind)
+        bot.register_next_step_handler(bot.send_message(message.from_user.id, reply_event_add), add_event_step)
+    except Exception as e:
+        print(str(e))
+        bot.send_message(message.chat.id, error_msg)
+
+
+def add_event_step(message):
+    try:
+        event = {}
+        for line in message.text.split("\n"):
+            part1, part2 = line.split(": ")[0], line.split(": ")[1]
+            if part1 == "Название":
+                event["name"] = part2
+            elif part1 == "Дата":
+                event["start_dt"] = part2
+            elif part1 == "Время":
+                event["start_time"] = part2
+            elif part1 == "Проводит":
+                event["owner"] = part2
+            elif part1 == "Как долго":
+                event["status"] = part2
+            elif part1 == "Описание":
+                event["description"] = part2
+
+        event["status"] = EventStatus.GOINGTO
+        print(event)
+        add_event(event["name"], event["owner"], event["start_dt"],
+                  event["start_time"], event["duration"], event["description"])
+        bot.send_message(message.from_user.id, text="Добавили!")
+    except Exception as e:
+        print(str(e))
 
 
 if __name__ == "__main__":

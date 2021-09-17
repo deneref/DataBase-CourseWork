@@ -16,8 +16,8 @@ class Events(Model):
     id = AutoField(unique=True, null=False)
     name = CharField()
     owner = CharField()
-    start_dt = DateField()
-    start_time = TimeField()
+    start_dt = DateField(formats=[dateFormat])
+    start_time = TimeField(formats=[timeFormat])
     duration = CharField()
     description = CharField()
     event_status = IntegerField(default=None)
@@ -103,6 +103,16 @@ def registered(id):
     return False
 
 
+def checkAdminStatus(id):
+    users = get_table(Users)
+
+    for line in users:
+        if line.id == id and line.userType == UserType.ADMIN:
+            return True
+
+    return False
+
+
 def getEvent(id):
     new_table = Events.select().where(Events.id == id).execute()
 
@@ -162,7 +172,7 @@ def getWeekEvents() -> [str]:
     return events
 
 
-# true on succsess
+# true on success
 def addRegistrationOnEvent(event_id, user_id) -> bool:
     try:
         Registrations.get(Registrations.eventId == event_id,
@@ -175,7 +185,7 @@ def addRegistrationOnEvent(event_id, user_id) -> bool:
     return False
 
 
-# true on succsess
+# true on success
 def calncelRegistrationOnEvent(event_id, user_id) -> bool:
     try:
         print(event_id, user_id)
@@ -193,8 +203,8 @@ def calncelRegistrationOnEvent(event_id, user_id) -> bool:
         return False
 
 
-# возвращает ивенты на неделю вперед не более %maxAmount
-def getWeekUpfrontEvents(maxAmount) -> [dict]:
+# возвращает aктивные ивенты на неделю вперед не более %maxAmount
+def getActiveWeekUpfrontEvents(maxAmount) -> [dict]:
     dates = getWeekUpfrontDates()
     eventNames = []
     for date in dates:
@@ -204,7 +214,20 @@ def getWeekUpfrontEvents(maxAmount) -> [dict]:
             break
 
     eventNames = [item for sublist in eventNames for item in sublist]
-    # [print(event) for event in eventNames]
+    return eventNames
+
+
+# возвращает все ивенты на неделю вперед не более %maxAmount
+def getAllWeekUpfrontEvents(maxAmount) -> [dict]:
+    dates = getWeekUpfrontDates()
+    eventNames = []
+    for date in dates:
+        eventNames.append(selectEventNamesForTheDay(date, status=EventStatus.UNKNOWN))
+        if len(eventNames) >= maxAmount:
+            eventNames = eventNames[0:maxAmount]
+            break
+
+    eventNames = [item for sublist in eventNames for item in sublist]
     return eventNames
 
 
@@ -230,13 +253,19 @@ def selectValidEventForTheDay(day):
     return '\n'.join(events)
 
 
-def selectEventNamesForTheDay(day):
-    todayEvents = Events.select().where(Events.start_dt == day, Events.event_status == EventStatus.GOINGTO).execute()
+def selectEventNamesForTheDay(day, status=EventStatus.GOINGTO):
+    if status != EventStatus.UNKNOWN:
+        todayEvents = Events.select().where(Events.start_dt == day, Events.event_status == status).execute()
+    else:
+        todayEvents = Events.select().where(Events.start_dt == day).execute()
     events = []
     for line in todayEvents:
         event = {"id": line.id,
                  "name": line.name,
                  "start_dt": line.start_dt,
+                 "status": line.event_status,
+                 "owner": line.owner,
+                 "description": line.description,
                  "start_time": str(line.start_time)}
         events.append(event)
 
@@ -247,15 +276,18 @@ def selectStatsForGivenMonth(firstDay, lastDay) -> [dict]:
     query = (Registrations
              .select(Events.id,
                      Events.name,
-                     fn.Count(Registrations.active == RegistrationStatus.ACTIVE).alias('count_active'),
-                     fn.Count(Registrations.active == RegistrationStatus.INACTIVE).alias('count_inactive'))
+                     fn.Sum(Case(None, ((Registrations.active == RegistrationStatus.ACTIVE, 1),), 0)).alias(
+                         'count_active'),
+                     fn.Sum(Case(None, ((Registrations.active == RegistrationStatus.INACTIVE, 1),), 0)).alias(
+                         'count_inactive'))
              .join(Events)
              .group_by(Events.id, Events.name)
              .where(Events.start_dt >= firstDay, Events.start_dt <= lastDay))
 
     agg = []
     for line in query:
-        agg.append({"id": line.eventId.id, "name": line.eventId.name, "count_active": line.count_active, "count_inactive": line.count_inactive})
+        agg.append({"id": line.eventId.id, "name": line.eventId.name,
+                    "count_active": line.count_active, "count_inactive": line.count_inactive})
 
     return agg
 
@@ -270,15 +302,15 @@ def getUserActiveRegistratedEvents(id, maxAmount) -> [dict]:
 
 
 def selectUserActiveRegistratedEvents(id):
+    today = date.today()
     query = (Registrations
              .select(Registrations.id, Events.name, Events.id, Registrations.eventId)
              .join(Events)
              .where(Registrations.userId == id,
-                    Events.start_dt >= date.today().strftime(dateFormat),
+                    Events.start_dt.year >= today.year,
+                    Events.start_dt.month >= today.month,
+                    Events.start_dt.day >= today.day,
                     Registrations.active == RegistrationStatus.ACTIVE))
-
-    # todayEvents = query.execute()
-    # print(todayEvents.__dict__)
 
     events = []
     for line in query:
@@ -300,19 +332,21 @@ def changeRegistrationStatus():
 def loadSomeEvents():
     add_event("🕺 dickскотека", "@daniil_toro", "08-09-2021", "10:00", "4 часа",
               "Оч крутая дискотека с тусичем и пивом", EventStatus.GOINGTO)
-    add_event("☕ Чаепитие", "@daniil_toro", "08-09-2021", "21:00", "10 часов",
+    add_event("☕ Чаепитие", "@daniil_toro", "17-09-2021", "21:00", "10 часов",
               "Пьем чай с шишками", EventStatus.GOINGTO)
-    add_event("☕ Отмененное Чаепитие", "@utyuzhnikova", "08-09-2021", "21:00", "10 часов",
+    add_event("☕ Отмененное Чаепитие", "@utyuzhnikova", "18-09-2021", "21:00", "10 часов",
               "Пьем чай с шишками", EventStatus.CANCELED)
-    add_event("🍺 Пивопильня", "@daniil_toro", "10-09-2021", "21:00", "всю ночь еклмн",
+    add_event("🍺 Пивопильня", "@daniil_toro", "18-09-2021", "21:00", "всю ночь еклмн",
               "Будем пить пиво всю ночь и кушать жареные пельмени", EventStatus.GOINGTO)
-    add_event("💘 Блайнд-дейтинг!", "@utyuzhnikova", "09-09-2021", "21:00", "20 минуток",
+    add_event("💘 Блайнд-дейтинг!", "@utyuzhnikova", "17-09-2021", "21:00", "20 минуток",
               "Всем завяжут глаза и заставят встречаться друг с другом", EventStatus.GOINGTO)
-    add_event("📚 Книжный вечер", "@utyuzhnikova", "10-09-2021", "12:00", "6 часов",
+    add_event("🥞 Масленица", "@kattyog", "17-09-2021", "00:00", "неделю!!",
+              "Блины кушаем никого не слушаем", EventStatus.GOINGTO)
+    add_event("📚 Книжный вечер", "@utyuzhnikova", "19-09-2021", "12:00", "6 часов",
               "Читаем книжки 6 часов подряд", EventStatus.CANCELED)
-    add_event("👖 Своп-парти", "@daniil_toro", "09-10-2021", "09:00", "all day long",
+    add_event("👖 Своп-парти", "@daniil_toro", "19-10-2021", "09:00", "all day long",
               "Свопаемся свопами хе-хе", EventStatus.GOINGTO)
-    add_event("👨‍💼 Бизнес-тренинг", "@daniil_toro", "10-10-2021", "09:00", "all day long",
+    add_event("👨‍💼 Бизнес-тренинг", "@daniil_toro", "19-10-2021", "09:00", "all day long",
               "Бизнес тренеруемся хе-хе", EventStatus.GOINGTO)
 
 
@@ -348,6 +382,21 @@ def selectAllFromRegs() -> [dict]:
         reg.append({"id": line.id, "eventId": line.eventId, "userId": line.userId, "active": line.active})
 
     return reg
+
+
+def updateEvent(event):
+
+    try:
+        query = Events.update(name=event["name"], start_dt=event["start_dt"], start_time=event["start_time"],
+                              owner=event["owner"], event_status=event["status"], description=event["description"]) \
+            .where((Events.id == event["id"]))
+        query.execute()
+
+        return True
+    except Exception as e:
+        print(str(e))
+
+    return False
 
 
 if __name__ == "__main__":

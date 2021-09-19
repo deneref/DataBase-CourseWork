@@ -24,11 +24,12 @@ def handle_start(message):
 
 @bot.message_handler(commands=["admin"])
 def handle_admin(message):
-    if not (checkAdminStatus(message.from_user.id)):
+    if not (checkAdminStatus(message.from_user.id)) and registered(message.from_user.id):
         bot.register_next_step_handler(bot.send_message(message.chat.id, reply_admin_password),
                                        fill_admin_password_step)
     else:
         bot.send_message(message.from_user.id, reply_already_admin)
+        giveGuestStatus(message.from_user.id)
 
 
 @bot.message_handler(commands=["menu"])

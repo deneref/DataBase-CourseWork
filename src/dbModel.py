@@ -133,6 +133,11 @@ def giveAdminStatus(id, password=""):
         return False
 
 
+def giveGuestStatus(id):
+    query = Users.update(userType=UserType.GUEST).where((Users.id == id))
+    query.execute()
+
+
 def fillUserFIO(id, FIO):
     users_table = get_table(Users)
     for user in users_table:
@@ -385,7 +390,6 @@ def selectAllFromRegs() -> [dict]:
 
 
 def updateEvent(event):
-
     try:
         query = Events.update(name=event["name"], start_dt=event["start_dt"], start_time=event["start_time"],
                               owner=event["owner"], event_status=event["status"], description=event["description"]) \

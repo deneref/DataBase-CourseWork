@@ -110,39 +110,47 @@ def callback_query(call):
     try:
         if call.data == weekDays[0]:
             print(weekEvents[0])
-            bot.answer_callback_query(call.id, weekEvents[0])
+            #bot.answer_callback_query(call.id, weekEvents[0])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
                                   text=weekEvents[0], reply_markup=guestWeekEvents())
+            # bot.send_message(call.from_user.id, weekEvents[0])
         elif call.data == weekDays[1]:
             print(weekEvents[1])
-            bot.answer_callback_query(call.id, weekEvents[1])
+            #bot.answer_callback_query(call.id, weekEvents[1])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
                                   text=weekEvents[1], reply_markup=guestWeekEvents())
+            # bot.send_message(call.from_user.id, weekEvents[1])
         elif call.data == weekDays[2]:
             print(weekEvents[2])
-            bot.answer_callback_query(call.id, weekEvents[2])
-            bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
-                                  text=weekEvents[2], reply_markup=guestWeekEvents())
+            #bot.answer_callback_query(call.id, weekEvents[2])
+            # bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
+            #                       text=weekEvents[2], reply_markup=guestWeekEvents())
+            bot.send_message(call.from_user.id, weekEvents[2])
         elif call.data == weekDays[3]:
             print(weekEvents[5])
-            bot.answer_callback_query(call.id, weekEvents[3])
+            #bot.answer_callback_query(call.id, weekEvents[3])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
                                   text=weekEvents[3], reply_markup=guestWeekEvents())
+            # bot.send_message(call.from_user.id, weekEvents[3])
+
         elif call.data == weekDays[4]:
             print(weekEvents[4])
-            bot.answer_callback_query(call.id, weekEvents[4])
+            #bot.answer_callback_query(call.id, weekEvents[4])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
                                   text=weekEvents[4], reply_markup=guestWeekEvents())
+            # bot.send_message(call.from_user.id, weekEvents[4])
         elif call.data == weekDays[5]:
-            print(weekEvents[5])
-            bot.answer_callback_query(call.id, weekEvents[5])
+            print(weekEvents[5], "5")
+            #bot.answer_callback_query(call.id, weekEvents[5])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
                                   text=weekEvents[5], reply_markup=guestWeekEvents())
+            #bot.send_message(call.from_user.id, weekEvents[5])
         elif call.data == weekDays[6]:
             print(weekEvents[6])
-            bot.answer_callback_query(call.id, weekEvents[6])
+            #bot.answer_callback_query(call.id, weekEvents[6])
             bot.edit_message_text(message_id=call.message.message_id, chat_id=call.from_user.id,
-                                  text=weekEvents[6], reply_markup=guestWeekEvents())
+                                   text=weekEvents[6], reply_markup=guestWeekEvents())
+            # bot.send_message(call.from_user.id, weekEvents[6])
     except Exception as e:
         print(str(e))
 
@@ -400,7 +408,7 @@ def add_event_step(message):
             elif part1 == "Проводит":
                 event["owner"] = part2
             elif part1 == "Как долго":
-                event["status"] = part2
+                event["duration"] = part2
             elif part1 == "Описание":
                 event["description"] = part2
 
